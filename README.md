@@ -14,10 +14,45 @@ Due to the absence of labeled data (i.e., pre-existing, verified credit scores),
 
 The model is implemented in a single Python script (`credit_scoring_model.py`) that performs the following steps:
 
-1. **Data Loading**: Loads the raw transaction data from a JSON file.  
-2. **Feature Engineering**: Creates a set of features for each wallet.  
-3. **Scoring**: Applies a weighted scoring algorithm to the engineered features to calculate a credit score for each wallet.  
-4. **Output**: Saves the wallet addresses and their corresponding credit scores to a CSV file.
+### 1. Data Loading and Preprocessing
+
+- Reads the raw transaction data from a JSON file (`user-wallet-transactions.json`).
+- Converts Unix timestamps to readable datetime objects.
+- Parses `amount` and `assetPriceUSD` strings into numeric types.
+- Normalizes amounts based on token decimal precision (e.g., USDC has 6 decimals; WETH/DAI have 18).
+- Calculates `amount_usd` for each transaction using `amount × assetPriceUSD`.
+
+### 2. Feature Engineering
+
+Aggregates transaction data for each unique `userWallet`, calculating:
+
+- **Financial Activity**: Total USD value of deposits, borrows, repays, and redemptions.
+- **Risk Indicators**: Number of `liquidationcall` events.
+- **Engagement Metrics**: Total number of transactions, duration of activity (first to last transaction), number of unique assets.
+- **Behavioral Ratios**:
+  - `repay_to_borrow_ratio`: (total repays / total borrows), capped at 1.0
+  - `activity_score`: (transactions per day of activity)
+
+### 3. Credit Score Calculation
+
+- Each feature is min-max normalized (scaled to 0–1).
+- Predefined `FEATURE_WEIGHTS` are applied:
+  - Positive weights → increase score
+  - Negative weights → decrease score
+- Weighted sum is scaled to a final **0–1000** score range.
+- Scores are clipped to ensure they're within bounds.
+
+### 4. Output Generation
+
+- Final scores saved to `wallet_scores.csv`.
+
+### 5. Analysis and Visualization
+
+- Basic descriptive statistics on the generated scores.
+- Histogram of score distribution across 100-point bins (e.g., 0–99, 100–199, etc.).
+- Example features printed for:
+  - Top 5% wallets
+  - Bottom 5% wallets
 
 ---
 
